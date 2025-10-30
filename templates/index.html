@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agri-Climate Q&A System</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #2E8B57, #228B22);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .chat-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .question-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .submit-btn {
+            background: #2E8B57;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .submit-btn:hover {
+            background: #228B22;
+        }
+        .answer-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #2E8B57;
+        }
+        .sources-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f5e8;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .sample-questions {
+            margin-top: 20px;
+        }
+        .sample-question {
+            display: inline-block;
+            background: #e3f2fd;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .sample-question:hover {
+            background: #bbdefb;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌾 Agri-Climate Intelligence System</h1>
+        <p>Ask questions about India's agricultural economy and climate patterns</p>
+        <p><small>Powered by data.gov.in - Ministry of Agriculture & India Meteorological Department</small></p>
+    </div>
+
+    <div class="chat-container">
+        <input type="text" class="question-input" id="questionInput"
+               placeholder="Ask a question about agriculture and climate data...">
+        <button class="submit-btn" onclick="askQuestion()">Ask Question</button>
+
+        <div class="sample-questions">
+            <p><strong>Sample Questions:</strong></p>
+            <div class="sample-question" onclick="setQuestion(this)">
+                Compare rainfall in Punjab and Maharashtra for 2022 with top crops
+            </div>
+            <div class="sample-question" onclick="setQuestion(this)">
+                Find districts with highest wheat production in Punjab
+            </div>
+            <div class="sample-question" onclick="setQuestion(this)">
+                Analyze rice production trend and correlate with climate data
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <p>🔍 Analyzing data from government sources...</p>
+        </div>
+
+        <div id="answerContainer"></div>
+    </div>
+
+    <script>
+        function setQuestion(element) {
+            document.getElementById('questionInput').value = element.textContent;
+        }
+
+        async function askQuestion() {
+            const question = document.getElementById('questionInput').value;
+            const loading = document.getElementById('loading');
+            const answerContainer = document.getElementById('answerContainer');
+
+            if (!question.trim()) {
+                alert('Please enter a question');
+                return;
+            }
+
+            loading.style.display = 'block';
+            answerContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: question })
+                });
+
+                const data = await response.json();
+
+                loading.style.display = 'none';
+
+                if (data.success) {
+                    let html = `
+                        <div class="answer-container">
+                            <h3>Answer:</h3>
+                            <p>${data.answer.replace(/\n/g, '<br>')}</p>
+                            <div class="sources-container">
+                                <h4>Data Sources:</h4>
+                                <ul>
+                    `;
+
+                    data.sources.forEach(source => {
+                        html += `<li>${source}</li>`;
+                    });
+
+                    html += `
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+
+                    answerContainer.innerHTML = html;
+                } else {
+                    answerContainer.innerHTML = `
+                        <div class="answer-container" style="border-left-color: #dc3545;">
+                            <p>Error: ${data.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                answerContainer.innerHTML = `
+                    <div class="answer-container" style="border-left-color: #dc3545;">
+                        <p>Network error: Please try again</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Allow pressing Enter to submit
+        document.getElementById('questionInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                askQuestion();
+            }
+        });
+    </script>
+</body>
+</html>
